@@ -129,6 +129,7 @@ Pages in use: 2, Objects in use: 8, Available objects: 0, Allocs: 8, Frees: 0
 Pages in use: 2, Objects in use: 7, Available objects: 1, Allocs: 8, Frees: 1
 Pages in use: 2, Objects in use: 6, Available objects: 2, Allocs: 8, Frees: 2
 Pages in use: 2, Objects in use: 5, Available objects: 3, Allocs: 8, Frees: 3
+Exception thrown from Free (Freeing object twice) in DoEmployees.
 Exception thrown from Free (Freeing address on bad boundary) in DoEmployees.
 Most employees in use: 8
 

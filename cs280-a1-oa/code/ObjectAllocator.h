@@ -262,6 +262,8 @@ class ObjectAllocator
   private:
       //private functions
       void CreateNewPage();
+      //
+      bool IsValidMemoryRange(uint8_t *mem);
 
   private:
       // Some "suggested" members (only a suggestion!)
