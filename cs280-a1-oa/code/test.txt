@@ -562,5 +562,38 @@ Alignment = 0, LeftAlign = 0, InterAlign = 0, HeaderBlocks = Extended, Header si
 Pages in use: 10, Objects in use: 10000, Available objects: 0, Allocs: 10000, Frees: 0
 
 ============================== Test free checking external (stress)...
+Object size = 24, Page size = 32008, Pad bytes = 0, ObjectsPerPage = 1000, MaxPages = 10, MaxObjects = 10000
+Alignment = 0, LeftAlign = 0, InterAlign = 0, HeaderBlocks = External, Header size = 8
+Pages in use: 10, Objects in use: 10000, Available objects: 0, Allocs: 10000, Frees: 0
+
 ============================== Test stress using new/delete...
+
+============================== Test stress using allocator...
+
+============================== Test alignment...
+Object size = 24, Page size = 107, Pad bytes = 2, ObjectsPerPage = 3, MaxPages = 2, MaxObjects = 6
+Alignment = 8, LeftAlign = 0, InterAlign = 0, HeaderBlocks = Basic, Header size = 5
+Pages in use: 1, Objects in use: 0, Available objects: 3, Allocs: 0, Frees: 0
+XXXXXXXX
+  0  1  2  3  4  5  6  7  8  9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
+ XX XX XX XX XX XX XX XX 00 00 00 00 00 DD DD XX XX XX XX XX XX XX XX AA AA AA AA AA AA AA AA AA
+ AA AA AA AA AA AA AA DD DD 00 00 00 00 00 DD DD XX XX XX XX XX XX XX XX AA AA AA AA AA AA AA AA
+ AA AA AA AA AA AA AA AA DD DD 00 00 00 00 00 DD DD XX XX XX XX XX XX XX XX AA AA AA AA AA AA AA
+ AA AA AA AA AA AA AA AA AA DD DD
+
+Pages in use: 2, Objects in use: 6, Available objects: 0, Allocs: 6, Frees: 0
+XXXXXXXX
+  0  1  2  3  4  5  6  7  8  9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
+ XX XX XX XX XX XX XX XX 06 00 00 00 01 DD DD XX XX XX XX XX XX XX XX BB BB BB BB BB BB BB BB BB
+ BB BB BB BB BB BB BB DD DD 05 00 00 00 01 DD DD XX XX XX XX XX XX XX XX BB BB BB BB BB BB BB BB
+ BB BB BB BB BB BB BB BB DD DD 04 00 00 00 01 DD DD XX XX XX XX XX XX XX XX BB BB BB BB BB BB BB
+ BB BB BB BB BB BB BB BB BB DD DD
+
+XXXXXXXX
+  0  1  2  3  4  5  6  7  8  9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
+ XX XX XX XX XX XX XX XX 03 00 00 00 01 DD DD XX XX XX XX XX XX XX XX BB BB BB BB BB BB BB BB BB
+ BB BB BB BB BB BB BB DD DD 02 00 00 00 01 DD DD XX XX XX XX XX XX XX XX BB BB BB BB BB BB BB BB
+ BB BB BB BB BB BB BB BB DD DD 01 00 00 00 01 DD DD XX XX XX XX XX XX XX XX BB BB BB BB BB BB BB
+ BB BB BB BB BB BB BB BB BB DD DD
+
 

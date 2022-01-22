@@ -276,19 +276,21 @@ void ObjectAllocator::AllocateExternalHeader(uint8_t* objBlock , const char* lab
     {
         throw OAException(OAException::E_NO_MEMORY, "Failed to create ExternalHeader: No system memory available.");
     }
+    size_t len = label ? strlen(label) : 0; //strlen
     //allocate for string label
     try
     {
-        size_t len = strlen(label); //strlen
-        infoBlock->label = new char[len + 1];
         
+        infoBlock->label = new char[len + 1];
+
     }
     catch (const std::bad_alloc&)
     {
         throw OAException(OAException::E_NO_MEMORY, "Failed to create ExternalHeader: No system memory available.");
     }
     //copy text label
-    strcpy(infoBlock->label,label);
+    if(len > 0)
+        strcpy(infoBlock->label,label);
     //copy external header address to block
     MemBlockInfo** tempHeaderPtr = reinterpret_cast<MemBlockInfo**>(headerStart);
     *tempHeaderPtr = infoBlock;
@@ -301,7 +303,7 @@ void ObjectAllocator::FreeExternalHeader(uint8_t* objBlock)
     MemBlockInfo* infoBlock = *reinterpret_cast<MemBlockInfo**>(headerStart);
 
     //free text mem
-    delete infoBlock->label; 
+    delete[] infoBlock->label; 
     //free Memblockinfo
     delete infoBlock;
 
