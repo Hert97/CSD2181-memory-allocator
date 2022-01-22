@@ -264,19 +264,22 @@ class ObjectAllocator
       void CreatePage();
 
       //finds the page the given object is in
-      GenericObject* FindPage(void *objBlock);
+      GenericObject* FindPage(uint8_t *objBlock) const;
 
-      //check is mem within allocated memory  
-      bool IsValidMemoryRange(void *objBlock);
+      //is given object block already freed before
+      bool IsMemoryFreed(uint8_t* objBlock) const;
 
       //is object aligned
-      bool IsValidAlignment(void *objBlock);
+      bool IsValidAlignment(uint8_t *objBlock ,GenericObject* pageLocation) const;
 
-      void UpdateHeaderInfo(void* objBlock,uint8_t flag);
+      bool IsPaddingCorrupted(uint8_t *objBlock) const;
 
-      void AllocateExternalHeader(void* objBlock , const char* label);
+      void UpdateHeaderInfo(uint8_t* objBlock,uint8_t flag);
 
-      void FreeExternalHeader(void* objBlock);
+      void AllocateExternalHeader(uint8_t* objBlock , const char* label);
+
+      void FreeExternalHeader(uint8_t* objBlock);
+
   private:
       // Some "suggested" members (only a suggestion!)
     GenericObject *pageList = nullptr; //!< the beginning of the list of pages
