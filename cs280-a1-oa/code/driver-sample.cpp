@@ -948,7 +948,8 @@ void TestExternalHeaderBlocks()
 //****************************************************************************************************
 //****************************************************************************************************
 void DoStudents(unsigned padding, bool printall)
-{
+{   
+    
     try
     {
         bool newdel = false;
@@ -981,12 +982,14 @@ void DoStudents(unsigned padding, bool printall)
     Student* pStudent1 = 0, * pStudent2 = 0, * pStudent3 = 0;
     try
     {
-        pStudent1 = static_cast<Student*>(studentObjectMgr->Allocate());
+        pStudent1 = static_cast<Student*>(studentObjectMgr->Allocate());  
         PrintCounts(studentObjectMgr);
         if (printall)
             DumpPages(studentObjectMgr, wrap);
         pStudent2 = static_cast<Student*>(studentObjectMgr->Allocate());
         PrintCounts(studentObjectMgr);
+       
+
         if (printall)
             DumpPages(studentObjectMgr, wrap);
         pStudent3 = static_cast<Student*>(studentObjectMgr->Allocate());
@@ -1006,9 +1009,11 @@ void DoStudents(unsigned padding, bool printall)
         cout << "Unexpected exception thrown from Allocate in DoStudents." << endl;
     }
 
+   
     Student* pStudent4[6];
     for (int i = 0; i < 6; i++)
-    {
+    {   
+        
         try
         {
             pStudent4[i] = static_cast<Student*>(studentObjectMgr->Allocate());
@@ -1030,6 +1035,7 @@ void DoStudents(unsigned padding, bool printall)
         }
 
     }
+
     PrintCounts(studentObjectMgr);
     if (printall)
         DumpPages(studentObjectMgr, wrap);

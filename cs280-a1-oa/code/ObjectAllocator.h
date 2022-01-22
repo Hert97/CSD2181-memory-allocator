@@ -261,10 +261,22 @@ class ObjectAllocator
 
   private:
       //private functions
-      void CreateNewPage();
-      //
-      bool IsValidMemoryRange(uint8_t *mem);
+      void CreatePage();
 
+      //finds the page the given object is in
+      GenericObject* FindPage(void *objBlock);
+
+      //check is mem within allocated memory  
+      bool IsValidMemoryRange(void *objBlock);
+
+      //is object aligned
+      bool IsValidAlignment(void *objBlock);
+
+      void UpdateHeaderInfo(void* objBlock,uint8_t flag);
+
+      void AllocateExternalHeader(void* objBlock , const char* label);
+
+      void FreeExternalHeader(void* objBlock);
   private:
       // Some "suggested" members (only a suggestion!)
     GenericObject *pageList = nullptr; //!< the beginning of the list of pages
