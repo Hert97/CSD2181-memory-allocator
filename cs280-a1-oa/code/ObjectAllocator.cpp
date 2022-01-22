@@ -279,15 +279,15 @@ void ObjectAllocator::AllocateExternalHeader(uint8_t* objBlock , const char* lab
     size_t len = label ? strlen(label) : 0; //strlen
     //allocate for string label
     try
-    {
-        
+    {      
         infoBlock->label = new char[len + 1];
-
     }
     catch (const std::bad_alloc&)
     {
         throw OAException(OAException::E_NO_MEMORY, "Failed to create ExternalHeader: No system memory available.");
     }
+    //ensure null teminated if label is nullptr
+    infoBlock->label[0] = 0;
     //copy text label
     if(len > 0)
         strcpy(infoBlock->label,label);
