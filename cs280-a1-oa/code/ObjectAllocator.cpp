@@ -447,9 +447,7 @@ unsigned ObjectAllocator::DumpMemoryInUse(DUMPCALLBACK fn) const
     //obj data alignment
     const size_t objAlignment = 
     stats.ObjectSize_ + config.PadBytes_ * 2 + config.InterAlignSize_ + config.HBlockInfo_.size_;
-    //obj data alignment w/o interalignment
-    const size_t objAlignmentWO_IA 
-    = stats.ObjectSize_ + config.PadBytes_ * 2  + config.HBlockInfo_.size_;
+   
     while(page)
     {
         uint8_t* objData =  reinterpret_cast<uint8_t*>(page) + toDataOffset; 
@@ -510,8 +508,11 @@ unsigned ObjectAllocator::DumpMemoryInUse(DUMPCALLBACK fn) const
                 ++counter;
             }   
 
-            objData += i == config.ObjectsPerPage_ - 1 ? objAlignmentWO_IA : objAlignment; 
-
+            //if is last object on page dont add alignment as it contains interalignment
+            if(i != config.ObjectsPerPage_ - 1 )
+            {
+                objData += objAlignment;   
+            }
            
         } 
         page = page->Next;
@@ -531,11 +532,7 @@ unsigned ObjectAllocator::ValidatePages(VALIDATECALLBACK fn) const
         //obj data alignment
         const size_t objAlignment = 
         stats.ObjectSize_ + config.PadBytes_ * 2 + config.InterAlignSize_ + config.HBlockInfo_.size_;
-        
-        //obj data alignment w/o interalignment
-        const size_t objAlignmentWO_IA 
-        = stats.ObjectSize_ + config.PadBytes_ * 2  + config.HBlockInfo_.size_;
-
+    
         while(page)
         {
             uint8_t* objData =  reinterpret_cast<uint8_t*>(page) + toDataOffset; 
@@ -547,9 +544,12 @@ unsigned ObjectAllocator::ValidatePages(VALIDATECALLBACK fn) const
                     fn(objData,stats.ObjectSize_);
                     ++counter;
                 } 
-                //if is last object on page dont interalignment
-    
-                objData += i == config.ObjectsPerPage_ - 1 ? objAlignmentWO_IA : objAlignment;     
+                //if is last object on page dont add alignment as it contains interalignment
+                if(i != config.ObjectsPerPage_ - 1 )
+                {
+                    objData += objAlignment;   
+                }
+                  
             }     
             page = page->Next;
         }
