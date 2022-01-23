@@ -2285,7 +2285,7 @@ int main(int argc, char** argv)
         cout << "============================== Test stress using allocator..." << endl;
         Stress(false);
         cout << endl;
-#if 0
+#if 1
         cout << "============================== Test alignment..." << endl;
         TestAlignment();
         cout << endl;
@@ -2294,6 +2294,9 @@ int main(int argc, char** argv)
         cout << endl;
         cout << "============================== Test free empty pages 2..." << endl;
         TestFreeEmptyPages2();
+        cout << endl;
+        cout << "============================== Test free empty pages 3..." << endl;
+        TestFreeEmptyPages3();
         cout << endl;
 
 #endif

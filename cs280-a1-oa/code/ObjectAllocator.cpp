@@ -1,3 +1,17 @@
+/**
+ * @file    ObjectAllocator.cpp
+ * @author  Ho Yi Guan 
+ *          SIT     : 2001595@sit.singaporetech.edu.sg 
+ *          Digipen : Yiguan.ho@digipen.edu.sh
+ * @brief   Contains the implementation for an ObjectAllocator that acts
+ *          as a memory management system
+ *           
+ * @date    2022-01-21
+ * 
+ * @copyright Copyright (c) 2022
+ * 
+ */
+
 #include "ObjectAllocator.h"
 #include <cstring>
 #include <assert.h>
@@ -16,17 +30,35 @@ OAConfig ObjectAllocator::GetConfig() const { return config; }        // returns
 OAStats ObjectAllocator::GetStats() const { return stats; }           // returns the statistics for the allocator
 
 
-
-static void PrintList(const char* label, GenericObject* n)
+/**
+ * @brief   Prints the addresses sequence of a linked list used for debugging
+ *            
+ * @param   label
+ *          A header label before the linklist print out 
+ * @param   list
+ *          The linklist to output
+ */
+static void PrintList(const char* label, GenericObject* list)
 {
     printf("%s\n", label);
-    while (n)
+    while (list)
     {
-        printf("%p\n", n);
-        n = n->Next;
+        printf("%p\n", static_cast<void*>(list));
+        list = list->Next;
     }
 }
 
+/**
+ * @brief   Helper function to write memory pattern to a block on memory
+ * 
+ * @param   object
+ *          The ptr to the starting block to write
+ * @param   byteSize 
+ *          Number of bytes to write to param object
+ * @param   pattern
+ *          Pattern to write to block
+ *          
+ */
 static void WritePatternToBlock(void* object, size_t byteSize, uint8_t pattern)
 {
 
@@ -38,6 +70,14 @@ static void WritePatternToBlock(void* object, size_t byteSize, uint8_t pattern)
     memset(memStart, pattern, byteSize);
 
 }
+
+/**
+ * @brief   Helper function to update allocation stats
+ *          for ObjectAllocator::Allocate function
+ * 
+ * @param   stats 
+ *          The stats object to update
+ */
 static void UpdateAllocationStats(OAStats& stats)
 {
     //update stats
@@ -46,6 +86,14 @@ static void UpdateAllocationStats(OAStats& stats)
     stats.MostObjects_ = std::max(stats.MostObjects_, stats.ObjectsInUse_);
     --stats.FreeObjects_;
 }
+
+/**
+ * @brief   Helper function to update deallocation stats
+ *          for ObjectAllocator::Free function
+ * 
+ * @param   stats 
+ *          The stats object to update
+ */
 static void UpdateDeallocationStats(OAStats& stats)
 {
     //update stats
@@ -55,20 +103,51 @@ static void UpdateDeallocationStats(OAStats& stats)
 }
 
 
+/**
+ * @brief   Construct a new Object Allocator
+ * 
+ * @param   ObjectSize
+ *          The allocation's object size in bytes
+ * @param   configuration
+ *          A structure of configurations to apply 
+ *          for allocator
+ */
 ObjectAllocator::ObjectAllocator(size_t ObjectSize, const OAConfig& configuration)
     : pageList{ nullptr }, freeList{ nullptr }, config{ configuration }, stats{}
 {
 
+    //calculate alignments
+    if (config.Alignment_ > 0)
+    {
+        size_t leftAlignSize = ptrSize + config.HBlockInfo_.size_ + config.PadBytes_;
+        //is leftAlignSize is a multiples of Alignment
+        size_t remainder = leftAlignSize % config.Alignment_;
+
+        if (remainder != 0) //if not calculate how many bytes more needed
+            config.LeftAlignSize_ = config.Alignment_ - remainder;
+
+        size_t interAlignSize = ObjectSize + config.HBlockInfo_.size_ + static_cast<size_t>(config.PadBytes_ * 2u);
+        //is interAlignSize is a multiples of Alignment
+        remainder = interAlignSize % config.Alignment_;
+
+        if (remainder != 0) //if not calculate how many bytes more needed
+            config.InterAlignSize_ = config.Alignment_ - remainder;
+    }
 
     size_t totalBlockSize = config.ObjectsPerPage_ * (config.HBlockInfo_.size_ + config.PadBytes_ + ObjectSize + config.PadBytes_ + config.InterAlignSize_);
     size_t allocateSize = ptrSize + config.LeftAlignSize_ + totalBlockSize - config.InterAlignSize_;
 
     stats.ObjectSize_ = ObjectSize;
-    stats.PageSize_ = allocateSize;
     stats.MostObjects_ = 0;
+    stats.PageSize_ = allocateSize;
+
     CreatePage();
 }
 
+/**
+ * @brief   Destructor of the Object Allocator
+ * 
+ */
 ObjectAllocator::~ObjectAllocator()
 {
 
@@ -81,6 +160,10 @@ ObjectAllocator::~ObjectAllocator()
     }
 }
 
+/**
+ * @brief   Creates a new page of memory for the allocator
+ *          
+ */
 void ObjectAllocator::CreatePage()
 {
 
@@ -144,14 +227,23 @@ void ObjectAllocator::CreatePage()
 
 }
 
+/**
+ * @brief   Allocate space for a object using memory from the allocator
+ *          unless override by config.UseCPPMemManager_ flag
+ * 
+ * @param   label 
+ *          The label for external header if in use
+ * @return  A void* to given memoryblock
+ *          
+ */
 void* ObjectAllocator::Allocate(const char* label)
 {
 
-    if(config.UseCPPMemManager_)
+    if (config.UseCPPMemManager_)
     {
         //update stats
         UpdateAllocationStats(stats);
-        return new uint8_t[stats.ObjectSize_] ;
+        return new uint8_t[stats.ObjectSize_];
     }
 
     //PrintFreeList("FreeList:", freeList);
@@ -191,7 +283,7 @@ void* ObjectAllocator::Allocate(const char* label)
     //create external header block
     if (config.HBlockInfo_.type_ == OAConfig::hbExternal)
     {
-        AllocateExternalHeader(headerBlock,label);
+        AllocateExternalHeader(headerBlock, label);
     }
     //update headers info if any
     UpdateHeaderInfo(headerBlock, allocFlag);
@@ -200,20 +292,22 @@ void* ObjectAllocator::Allocate(const char* label)
     return freeBlock;
 }
 
-
+/**
+ * @brief 
+ * 
+ * @param Object 
+ */
 void ObjectAllocator::Free(void* Object)
 {
+    uint8_t* objBlock = reinterpret_cast<uint8_t*>(Object);
 
-    if(config.UseCPPMemManager_)
+    if (config.UseCPPMemManager_)
     {
         //update stats
         UpdateDeallocationStats(stats);
-        delete[] Object;
+        delete[] objBlock;
         return;
     }
-
-    uint8_t* objBlock = reinterpret_cast<uint8_t*>(Object);
-
     if (objBlock)
     {
         // debug check
@@ -224,16 +318,16 @@ void ObjectAllocator::Free(void* Object)
                 throw OAException(OAException::E_MULTIPLE_FREE, "Double Free Detected: Memory is already freed\n");
             }
             GenericObject* pageFound = FindPage(objBlock);
-            if (!pageFound) 
+            if (!pageFound)
             {
                 throw OAException(OAException::E_BAD_BOUNDARY, "Freeing: Out of range memory\n");
             }
-            if(!IsValidAlignment(objBlock,pageFound))
+            if (!IsValidAlignment(objBlock, pageFound))
             {
                 throw OAException(OAException::E_BAD_BOUNDARY, "Freeing: Valid alignment\n");
             }
             //check corruption
-            if(IsPaddingCorrupted(objBlock))
+            if (IsPaddingCorrupted(objBlock))
             {
                 throw(OAException(OAException::E_CORRUPTED_BLOCK, "MemoryBlock: Corruption detected\n"));
             }
@@ -243,7 +337,7 @@ void ObjectAllocator::Free(void* Object)
         //clear to freed pattern
         memset(Object, FREED_PATTERN, stats.ObjectSize_);
 
-        
+
         //last to prevent overwrite
         GenericObject* temp = reinterpret_cast<GenericObject*>(Object);
         temp->Next = freeList;
@@ -255,7 +349,7 @@ void ObjectAllocator::Free(void* Object)
         //update headers info if any
         UpdateHeaderInfo(objBlock, freedFlag);
 
-        
+
         if (config.HBlockInfo_.type_ == OAConfig::hbExternal)
         {
             FreeExternalHeader(objBlock);
@@ -263,7 +357,7 @@ void ObjectAllocator::Free(void* Object)
 
     }
 }
-void ObjectAllocator::AllocateExternalHeader(uint8_t* objBlock , const char* label)
+void ObjectAllocator::AllocateExternalHeader(uint8_t* objBlock, const char* label)
 {
     uint8_t* headerStart = objBlock - config.PadBytes_ - config.HBlockInfo_.size_;
 
@@ -279,7 +373,7 @@ void ObjectAllocator::AllocateExternalHeader(uint8_t* objBlock , const char* lab
     size_t len = label ? strlen(label) : 0; //strlen
     //allocate for string label
     try
-    {      
+    {
         infoBlock->label = new char[len + 1];
     }
     catch (const std::bad_alloc&)
@@ -289,7 +383,7 @@ void ObjectAllocator::AllocateExternalHeader(uint8_t* objBlock , const char* lab
     //ensure null teminated if label is nullptr
     infoBlock->label[0] = 0;
     //copy text label
-    if(len > 0)
+    if (len > 0)
         strcpy(infoBlock->label,label);
     //copy external header address to block
     MemBlockInfo** tempHeaderPtr = reinterpret_cast<MemBlockInfo**>(headerStart);
@@ -303,7 +397,7 @@ void ObjectAllocator::FreeExternalHeader(uint8_t* objBlock)
     MemBlockInfo* infoBlock = *reinterpret_cast<MemBlockInfo**>(headerStart);
 
     //free text mem
-    delete[] infoBlock->label; 
+    delete[] infoBlock->label;
     //free Memblockinfo
     delete infoBlock;
 
@@ -338,7 +432,7 @@ void ObjectAllocator::UpdateHeaderInfo(uint8_t* objBlock, uint8_t flag)
         if (isFromAllocateFunc)
         {
             uint16_t* useCounter = reinterpret_cast<uint16_t*>(headerStart);
-            ++*useCounter;
+            ++* useCounter;
         }
 
         headerStart += sizeof(uint16_t);
@@ -359,7 +453,7 @@ void ObjectAllocator::UpdateHeaderInfo(uint8_t* objBlock, uint8_t flag)
             infoBlock->in_use = isFromAllocateFunc;
             infoBlock->alloc_num = isFromAllocateFunc ? stats.Allocations_ : 0;
         }
-       
+
         break;
     }
     default:
@@ -368,35 +462,35 @@ void ObjectAllocator::UpdateHeaderInfo(uint8_t* objBlock, uint8_t flag)
 }
 
 
-GenericObject* ObjectAllocator::FindPage(uint8_t *objBlock) const
+GenericObject* ObjectAllocator::FindPage(uint8_t* objBlock) const
 {
     // range check
     uint8_t* page = reinterpret_cast<uint8_t*>(pageList);
-   
+
     //loop through all pages to check if block is within valid address range
     while (page)
     {
         uint8_t* pageEnd = page + stats.PageSize_;
-      
-        if(objBlock >= page && objBlock < pageEnd) //found page
+
+        if (objBlock >= page && objBlock < pageEnd) //found page
         {
             return reinterpret_cast<GenericObject*>(page);
         }
-   
+
         page = reinterpret_cast<uint8_t*>(reinterpret_cast<GenericObject*>(page)->Next);
     }
 
     return nullptr;
 }
 
-bool ObjectAllocator::IsMemoryFreed(uint8_t* objBlock) const 
+bool ObjectAllocator::IsMemoryFreed(uint8_t* objBlock) const
 {
     GenericObject* currBlock = freeList;
     GenericObject* obj = reinterpret_cast<GenericObject*>(objBlock);
     //scan through freeList
-    while(currBlock) 
+    while (currBlock)
     {
-        if(obj == currBlock) // aldy exist on freeList
+        if (obj == currBlock) // aldy exist on freeList
             return true;
         currBlock = currBlock->Next;
     }
@@ -404,162 +498,260 @@ bool ObjectAllocator::IsMemoryFreed(uint8_t* objBlock) const
 
 }
 
-bool ObjectAllocator::IsValidAlignment(uint8_t *objBlock ,GenericObject* pageLocation) const
+bool ObjectAllocator::IsValidAlignment(uint8_t* objBlock, GenericObject* pageLocation) const
 {
-    if(!pageLocation)
+    if (!pageLocation)
         return false;
 
     //page first data block section
-    uint8_t* dataBlockStart =  
-    reinterpret_cast<uint8_t*>(pageLocation) 
-    + ptrSize + config.LeftAlignSize_ + config.HBlockInfo_.size_ + config.PadBytes_;
-    //objects alignment size
-    size_t objAlignmentSize = stats.ObjectSize_ 
-    + config.PadBytes_ * 2 + config.InterAlignSize_ + config.HBlockInfo_.size_;
-    
+    uint8_t* dataBlockStart =
+        reinterpret_cast<uint8_t*>(pageLocation)
+        + ptrSize + config.LeftAlignSize_ + config.HBlockInfo_.size_ + config.PadBytes_;
+
+    //next object's advancement size
+    size_t objAdvSize = stats.ObjectSize_
+        + config.PadBytes_ * 2 + config.InterAlignSize_ + config.HBlockInfo_.size_;
+
     size_t actualSize = objBlock - dataBlockStart;
-    
-    return actualSize % objAlignmentSize == 0;
+
+    return actualSize % objAdvSize == 0;
 }
-bool ObjectAllocator::IsPaddingCorrupted(uint8_t *objBlock) const
+bool ObjectAllocator::IsPaddingCorrupted(uint8_t* objBlock) const
 {
-    if(config.PadBytes_ == 0) //early out
-        return false; 
-    uint8_t* padStart = objBlock - config.PadBytes_ ;
+    if (config.PadBytes_ == 0) //early out
+        return false;
+    uint8_t* padStart = objBlock - config.PadBytes_;
     uint8_t* padEnd = padStart + stats.ObjectSize_ + config.PadBytes_;
 
     for (size_t i = 0; i < config.PadBytes_; ++i)
-    {   
-        if(padStart[i] != PAD_PATTERN)
+    {
+        if (padStart[i] != PAD_PATTERN)
             return true;
-        if(padEnd[i] != PAD_PATTERN)
+        if (padEnd[i] != PAD_PATTERN)
             return true;
-    }   
+    }
     return false;
 }
+bool ObjectAllocator::IsObjectBlockInUse(uint8_t* objBlock) const
+{
+    bool usedFlag = false;
+    //read header info if available
+    if (config.HBlockInfo_.type_ != OAConfig::hbNone)
+    {
+        uint8_t* headerStart = objBlock - config.PadBytes_ - config.HBlockInfo_.size_;
 
+        switch (config.HBlockInfo_.type_)
+        {
+        case OAConfig::HBLOCK_TYPE::hbBasic:
+        {
+            headerStart += sizeof(uint32_t);
+            //flag bit
+            usedFlag = *headerStart;
+            break;
+        }
+        case OAConfig::HBLOCK_TYPE::hbExtended:
+        {
+            headerStart += config.HBlockInfo_.additional_;  //skip user define block
+            //skip used counter
+            headerStart += sizeof(uint16_t) + sizeof(uint32_t);
+            //flag bit
+            usedFlag = *headerStart;
+            break;
+        }
+        case OAConfig::HBLOCK_TYPE::hbExternal:
+        {
+            MemBlockInfo* infoBlock = *reinterpret_cast<MemBlockInfo**>(headerStart);
+            if (infoBlock) //if valid
+            {
+                usedFlag = infoBlock->in_use;
+            }
+            break;
+        }
+        default:
+            break;
+        }
+
+    }
+    //else loop through freelist
+    else
+    {
+        usedFlag = !IsMemoryFreed(objBlock);
+    }
+    return usedFlag;
+}
 unsigned ObjectAllocator::DumpMemoryInUse(DUMPCALLBACK fn) const
 {
     unsigned int counter = 0;
 
     GenericObject* page = pageList;
-    size_t toDataOffset 
-    = ptrSize + config.LeftAlignSize_ + config.HBlockInfo_.size_ + config.PadBytes_;
-    
-    //obj data alignment
-    const size_t objAlignment = 
-    stats.ObjectSize_ + config.PadBytes_ * 2 + config.InterAlignSize_ + config.HBlockInfo_.size_;
-   
-    while(page)
-    {
-        uint8_t* objData =  reinterpret_cast<uint8_t*>(page) + toDataOffset; 
-        bool usedFlag = false;
+    size_t toDataOffset
+        = ptrSize + config.LeftAlignSize_ + config.HBlockInfo_.size_ + config.PadBytes_;
 
+    //offset to next obj
+    const size_t objAdvancement =
+        stats.ObjectSize_ + config.PadBytes_ * 2 + config.InterAlignSize_ + config.HBlockInfo_.size_;
+
+    while (page)
+    {
+        uint8_t* objData = reinterpret_cast<uint8_t*>(page) + toDataOffset;
         //loop per object in page
         for (size_t i = 0; i < config.ObjectsPerPage_; ++i)
         {
-            //read header info if available
-            if(config.HBlockInfo_.type_ != OAConfig::hbNone)
-            {   
-                uint8_t* headerStart = objData - config.PadBytes_ - config.HBlockInfo_.size_;
-                
-                switch (config.HBlockInfo_.type_)
-                {
-                    case OAConfig::HBLOCK_TYPE::hbBasic:
-                    {
-                        headerStart += sizeof(uint32_t);
-                        //flag bit
-                        usedFlag = *headerStart ;
-                        break;
-                    }            
-                    case OAConfig::HBLOCK_TYPE::hbExtended:
-                    {
-                        headerStart += config.HBlockInfo_.additional_;  //skip user define block
-                        //skip used counter
-                        headerStart += sizeof(uint16_t) + sizeof(uint32_t);
-                        //flag bit
-                        usedFlag = *headerStart;
-                        break;
-                    }
-                    case OAConfig::HBLOCK_TYPE::hbExternal:
-                    {
-                        MemBlockInfo* infoBlock = *reinterpret_cast<MemBlockInfo**>(headerStart);
-
-                        if (infoBlock) //if valid
-                        {
-                        usedFlag = infoBlock->in_use;
-                        }  
-                        break;
-                    }
-                    default:
-                        break;
-                }
-
-            
-            }
-            //else loop through freelist
-            else
-            {   
-                usedFlag = !IsMemoryFreed(objData);
-            }
-
             //block is in use
-            if(usedFlag) 
+            if (IsObjectBlockInUse(objData))
             {
-                fn(objData,stats.ObjectSize_);
+                fn(objData, stats.ObjectSize_);
                 ++counter;
-            }   
+            }
 
             //if is last object on page dont add alignment as it contains interalignment
-            if(i != config.ObjectsPerPage_ - 1 )
+            if (i != config.ObjectsPerPage_ - 1)
             {
-                objData += objAlignment;   
+                objData += objAdvancement;
             }
-           
-        } 
+
+        }
         page = page->Next;
     }
     return counter;
 }
 
 unsigned ObjectAllocator::ValidatePages(VALIDATECALLBACK fn) const
-{   
+{
     unsigned int counter = 0;
 
-    if(config.PadBytes_ > 0)   
+    if (config.PadBytes_ > 0)
     {
         GenericObject* page = pageList;
-        size_t toDataOffset 
-        = ptrSize + config.LeftAlignSize_ + config.HBlockInfo_.size_ + config.PadBytes_;
-        //obj data alignment
-        const size_t objAlignment = 
-        stats.ObjectSize_ + config.PadBytes_ * 2 + config.InterAlignSize_ + config.HBlockInfo_.size_;
-    
-        while(page)
+        size_t toDataOffset
+            = ptrSize + config.LeftAlignSize_ + config.HBlockInfo_.size_ + config.PadBytes_;
+        //offset to next obj
+        const size_t objAdvancement =
+            stats.ObjectSize_ + config.PadBytes_ * 2 + config.InterAlignSize_ + config.HBlockInfo_.size_;
+
+        while (page)
         {
-            uint8_t* objData =  reinterpret_cast<uint8_t*>(page) + toDataOffset; 
+            uint8_t* objData = reinterpret_cast<uint8_t*>(page) + toDataOffset;
 
             for (size_t i = 0; i < config.ObjectsPerPage_; ++i)
             {
-                if(IsPaddingCorrupted(objData))
+                if (IsPaddingCorrupted(objData))
                 {
-                    fn(objData,stats.ObjectSize_);
+                    fn(objData, stats.ObjectSize_);
                     ++counter;
-                } 
-                //if is last object on page dont add alignment as it contains interalignment
-                if(i != config.ObjectsPerPage_ - 1 )
-                {
-                    objData += objAlignment;   
                 }
-                  
-            }     
+                //if is last object on page dont add alignment as it contains interalignment
+                if (i != config.ObjectsPerPage_ - 1)
+                {
+                    objData += objAdvancement;
+                }
+
+            }
             page = page->Next;
         }
     }
     return counter;
 }
 
+void ObjectAllocator::FreePage(GenericObject*& currPage, GenericObject* prevPage)
+{
+    uint8_t* rawMem = reinterpret_cast<uint8_t*>(currPage);
+    uint8_t* objMem = rawMem + ptrSize + config.LeftAlignSize_ + config.HBlockInfo_.size_ + config.PadBytes_;
+    if (config.HBlockInfo_.type_ == OAConfig::hbExternal)
+    {
+        FreeExternalHeader(objMem);
+    }
+    const size_t objAdvSize = stats.ObjectSize_ + config.PadBytes_ * 2 + config.InterAlignSize_ + config.HBlockInfo_.size_;
+    
+    GenericObject* currFreeBlock = freeList;
+    GenericObject* prevFreeBlock = nullptr;
+
+    while (currFreeBlock)
+    {
+        
+        //serach in page for address
+        for (size_t i = 0; i < config.ObjectsPerPage_; ++i)
+        {
+            if (currFreeBlock == reinterpret_cast<GenericObject*>(objMem))
+            {
+                if (prevFreeBlock)// not head
+                    prevFreeBlock->Next = currFreeBlock->Next;
+                else
+                {
+                    freeList = currFreeBlock->Next;
+                    currFreeBlock = freeList;
+                }
+                    
+            }
+            if (i != config.ObjectsPerPage_ - 1)
+                objMem += objAdvSize;
+        }
+
+        prevFreeBlock = currFreeBlock;
+        if(currFreeBlock)
+            currFreeBlock = currFreeBlock->Next;
+    }
+  
+
+    if (prevPage)// not head
+        prevPage->Next = currPage->Next;
+    else
+        pageList = currPage->Next;
+    
+        
+    currPage = pageList;
+
+    //update stats
+    --stats.PagesInUse_;
+    stats.PagesInUse_ = std::max(0u,stats.PagesInUse_);
+    stats.FreeObjects_ -= config.ObjectsPerPage_;
+    stats.FreeObjects_ = std::max(0u,stats.FreeObjects_);
+ 
+    //cleanup page mem
+    delete[] rawMem;
+    rawMem = nullptr;
+
+}
 unsigned ObjectAllocator::FreeEmptyPages()
 {
-    return 0;
+    unsigned int counter = 0;
+
+    GenericObject* currPage = pageList;
+    GenericObject* prevPage = nullptr;
+
+    size_t toDataOffset
+        = ptrSize + config.LeftAlignSize_ + config.HBlockInfo_.size_ + config.PadBytes_;
+
+    //offset to next obj
+    const size_t objAdvancement =
+        stats.ObjectSize_ + config.PadBytes_ * 2 + config.InterAlignSize_ + config.HBlockInfo_.size_;
+
+    while (currPage)
+    {
+        uint8_t* objData = reinterpret_cast<uint8_t*>(currPage) + toDataOffset;
+        uint32_t objectsIsUse = 0;
+        for (size_t i = 0; i < config.ObjectsPerPage_; ++i)
+        {
+            if (IsObjectBlockInUse(objData))
+            {     
+                ++objectsIsUse;
+            }   
+            //if is last object on page dont add alignment as it contains interalignment
+            if (i != config.ObjectsPerPage_ - 1)
+            {
+                objData += objAdvancement;
+            }
+
+        }
+        //no objects in page is used
+        if(objectsIsUse == 0)
+        {
+            FreePage(currPage, prevPage);
+            ++counter;
+        }
+        prevPage = currPage;
+        if(currPage)
+            currPage = currPage->Next;
+    }
+    return counter;
 }

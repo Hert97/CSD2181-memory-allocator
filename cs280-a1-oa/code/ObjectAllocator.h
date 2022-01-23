@@ -259,8 +259,10 @@ class ObjectAllocator
     ObjectAllocator(const ObjectAllocator &oa) = delete;            //!< Do not implement!
     ObjectAllocator &operator=(const ObjectAllocator &oa) = delete; //!< Do not implement!
 
-  private:
+  
+  private:    
       //private functions
+      //creates a page in allocator
       void CreatePage();
 
       //finds the page the given object is in
@@ -274,11 +276,15 @@ class ObjectAllocator
 
       bool IsPaddingCorrupted(uint8_t *objBlock) const;
 
+      bool IsObjectBlockInUse(uint8_t *objBlock) const;
+
       void UpdateHeaderInfo(uint8_t* objBlock,uint8_t flag);
 
       void AllocateExternalHeader(uint8_t* objBlock , const char* label);
 
       void FreeExternalHeader(uint8_t* objBlock);
+
+      void FreePage(GenericObject*& page,GenericObject* prevPage);
 
   private:
       // Some "suggested" members (only a suggestion!)
