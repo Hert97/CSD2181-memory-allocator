@@ -1,3 +1,17 @@
+/**
+ * @file    ObjectAllocator.h
+ * @author  Ho Yi Guan 
+ *          SIT     : 2001595@sit.singaporetech.edu.sg 
+ *          Digipen : Yiguan.ho@digipen.edu.sh
+ * @brief   Contains the function declaration for an ObjectAllocator that acts
+ *          as a memory management system
+ * 
+ *          Contains other helper class/structs such as OAExceptions,OAstats,etc...         
+ * 
+ * @date    2022-01-21
+ * 
+ */
+
 //---------------------------------------------------------------------------
 #ifndef OBJECTALLOCATORH
 #define OBJECTALLOCATORH
@@ -213,81 +227,87 @@ struct MemBlockInfo
 class ObjectAllocator
 {
   public:
-      // Defined by the client (pointer to a block, size of block)
+    // Defined by the client (pointer to a block, size of block)
     typedef void (*DUMPCALLBACK)(const void *, size_t);     //!< Callback function when dumping memory leaks
     typedef void (*VALIDATECALLBACK)(const void *, size_t); //!< Callback function when validating blocks
 
-      // Predefined values for memory signatures
+    // Predefined values for memory signatures
     static const unsigned char UNALLOCATED_PATTERN = 0xAA; //!< New memory never given to the client
     static const unsigned char ALLOCATED_PATTERN =   0xBB; //!< Memory owned by the client
     static const unsigned char FREED_PATTERN =       0xCC; //!< Memory returned by the client
     static const unsigned char PAD_PATTERN =         0xDD; //!< Pad signature to detect buffer over/under flow
     static const unsigned char ALIGN_PATTERN =       0xEE; //!< For the alignment bytes
 
-      // Creates the ObjectManager per the specified values
-      // Throws an exception if the construction fails. (Memory allocation problem)
+    // Creates the ObjectManager per the specified values
+    // Throws an exception if the construction fails. (Memory allocation problem)
     ObjectAllocator(size_t ObjectSize, const OAConfig& config);
 
     // Destroys the ObjectManager (never throws)
     ~ObjectAllocator();
 
-      // Take an object from the free list and give it to the client (simulates new)
-      // Throws an exception if the object can't be allocated. (Memory allocation problem)
+    // Take an object from the free list and give it to the client (simulates new)
+    // Throws an exception if the object can't be allocated. (Memory allocation problem)
     void *Allocate(const char *label = 0);
 
-      // Returns an object to the free list for the client (simulates delete)
-      // Throws an exception if the the object can't be freed. (Invalid object)
+    // Returns an object to the free list for the client (simulates delete)
+    // Throws an exception if the the object can't be freed. (Invalid object)
     void Free(void *Object);
 
-      // Calls the callback fn for each block still in use
+    // Calls the callback fn for each block still in use
     unsigned DumpMemoryInUse(DUMPCALLBACK fn) const;
 
-      // Calls the callback fn for each block that is potentially corrupted
+    // Calls the callback fn for each block that is potentially corrupted
     unsigned ValidatePages(VALIDATECALLBACK fn) const;
 
-      // Frees all empty page
+    // Frees all empty page
     unsigned FreeEmptyPages();
 
-      // Testing/Debugging/Statistic methods
+    // Testing/Debugging/Statistic methods
     void SetDebugState(bool State);   // true=enable, false=disable
     const void *GetFreeList() const;  // returns a pointer to the internal free list
     const void *GetPageList() const;  // returns a pointer to the internal page list
     OAConfig GetConfig() const;       // returns the configuration parameters
     OAStats GetStats() const;         // returns the statistics for the allocator
 
-      // Prevent copy construction and assignment
+    // Prevent copy construction and assignment
     ObjectAllocator(const ObjectAllocator &oa) = delete;            //!< Do not implement!
     ObjectAllocator &operator=(const ObjectAllocator &oa) = delete; //!< Do not implement!
 
-  
+      
+  //private functions
   private:    
-      //private functions
-      //creates a page in allocator
+      // Creates a new page in allocator
       void CreatePage();
 
-      //finds the page the given object is in
+      // Finds the page the given object located
       GenericObject* FindPage(uint8_t *objBlock) const;
 
-      //is given object block already freed before
+      // Enquire whether the given object block has been freed previously
       bool IsMemoryFreed(uint8_t* objBlock) const;
 
-      //is object aligned
+      // Enquire whether  the given object block is aligned with others
       bool IsValidAlignment(uint8_t *objBlock ,GenericObject* pageLocation) const;
 
+      // Enquire whether an objectblock's padding has been corrupted
       bool IsPaddingCorrupted(uint8_t *objBlock) const;
 
+      // Enquire whether an objectblock is allocated to client(in-use)
       bool IsObjectBlockInUse(uint8_t *objBlock) const;
 
+      // Helper function to update header information
       void UpdateHeaderInfo(uint8_t* objBlock,uint8_t flag);
 
+      // Helper function to allocate memory & copy string buffer for external headers
       void AllocateExternalHeader(uint8_t* objBlock , const char* label);
 
+      // Helper function to free memory allocated by AllocateExternalHeader function
       void FreeExternalHeader(uint8_t* objBlock);
 
+      // Helper function to free a page in the allocator
       void FreePage(GenericObject*& page,GenericObject* prevPage);
 
   private:
-      // Some "suggested" members (only a suggestion!)
+    // Some "suggested" members (only a suggestion!)
     GenericObject *pageList = nullptr; //!< the beginning of the list of pages
     GenericObject *freeList = nullptr; //!< the beginning of the list of objects
     // Lots of other private stuff... 

@@ -845,7 +845,7 @@ void TestExternalHeaderBlocks()
         bool debug = true;
         unsigned padbytes = 2;
         OAConfig::HeaderBlockInfo header(OAConfig::hbExternal);
-        unsigned alignment = 8;
+        unsigned alignment = 0;
 
         OAConfig config(newdel, 4, 1, debug, padbytes, header, alignment);
         oa = new ObjectAllocator(sizeof(Student), config);
