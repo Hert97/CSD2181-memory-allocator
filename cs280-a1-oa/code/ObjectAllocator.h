@@ -2,7 +2,7 @@
  * @file    ObjectAllocator.h
  * @author  Ho Yi Guan 
  *          SIT     : 2001595@sit.singaporetech.edu.sg 
- *          Digipen : Yiguan.ho@digipen.edu.sh
+ *          Digipen : Yiguan.ho@digipen.edu
  * @brief   Contains the function declaration for an ObjectAllocator that acts
  *          as a memory management system
  * 

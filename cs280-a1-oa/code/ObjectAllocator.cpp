@@ -2,7 +2,7 @@
  * @file    ObjectAllocator.cpp
  * @author  Ho Yi Guan 
  *          SIT     : 2001595@sit.singaporetech.edu.sg 
- *          Digipen : Yiguan.ho@digipen.edu.sh
+ *          Digipen : Yiguan.ho@digipen.edu
  * @brief   Contains the implementation for an ObjectAllocator that acts
  *          as a memory management system
  *           
